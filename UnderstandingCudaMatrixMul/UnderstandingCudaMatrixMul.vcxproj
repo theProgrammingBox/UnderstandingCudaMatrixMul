@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Header.h" />
+    <ClInclude Include="olcPixelGameEngine.h" />
     <ClInclude Include="Randoms.h" />
   </ItemGroup>
   <ItemGroup>

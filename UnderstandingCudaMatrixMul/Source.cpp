@@ -37,26 +37,14 @@ void MatrixMulCPU(float* inputMatrix, float* weightMatrix, float* outputMatrix, 
 	}
 }
 
-__global__ void matrixMulGPU1(float* inputMatrix, float* weightMatrix, float* outputMatrix, uint32_t inputEntries, uint32_t inputFeatures, uint32_t outputFeatures)
+class Example : public olc::PixelGameEngine
 {
-	uint32_t row = blockIdx.y * blockDim.y + threadIdx.y;
-	uint32_t col = blockIdx.x * blockDim.x + threadIdx.x;
+private:
+	int step;
 
-	if (row < inputEntries && col < outputFeatures)
-	{
-		for (uint32_t i = 0; i < inputFeatures; i++)
-		{
-			outputMatrix[row * outputFeatures + col] += inputMatrix[row * inputFeatures + i] * weightMatrix[i * outputFeatures + col];
-		}
-	}
-}
-
-
-int main()
-{
-	uint32_t inputEntries = 2;
-	uint32_t inputFeatures = 4;
-	uint32_t outputFeatures = 1;
+	uint32_t inputEntries = 20;
+	uint32_t inputFeatures = 6;
+	uint32_t outputFeatures = 8;
 
 	uint32_t inputMatrixSize = inputFeatures * inputEntries;
 	uint32_t weightMatrixSize = inputFeatures * outputFeatures;
@@ -69,48 +57,211 @@ int main()
 	float* inputMatrix = (float*)malloc(inputMatrixBytes);
 	float* weightMatrix = (float*)malloc(weightMatrixBytes);
 	float* outputMatrix = (float*)malloc(outputMatrixBytes);
+	float* biasMatrix = (float*)malloc(outputMatrixBytes);
 
-	FillRandom(inputMatrix, inputMatrixSize);
-	FillRandom(weightMatrix, weightMatrixSize);
+public:
+	Example()
+	{
+		sAppName = "Visualize";
+	}
 
-	float* gpuInputMatrix;
-	float* gpuWeightMatrix;
-	float* gpuOutputMatrix;
+	bool OnUserCreate() override
+	{
+		step = 0;
 
-	cudaMalloc((void**)&gpuInputMatrix, inputMatrixBytes);
-	cudaMalloc((void**)&gpuWeightMatrix, weightMatrixBytes);
-	cudaMalloc((void**)&gpuOutputMatrix, outputMatrixBytes);
+		FillRandom(inputMatrix, inputMatrixSize);
+		FillRandom(weightMatrix, weightMatrixSize);
+		FillRandom(biasMatrix, outputMatrixSize);
 
-	dim3 threads, grid;
+		FillZero(outputMatrix, outputMatrixBytes);
+		MatrixMulCPU(inputMatrix, weightMatrix, outputMatrix, inputEntries, inputFeatures, outputFeatures);
+		PrintMatrix(outputMatrix, inputEntries, outputFeatures);
+		return true;
+	}
+
+	bool OnUserUpdate(float fElapsedTime) override
+	{
+		if (GetKey(olc::Key::UP).bPressed) step++;
+		if (GetKey(olc::Key::DOWN).bPressed) step--;
+
+		const int scale = 20;
+		const int hscale = scale / 2;
+		const int hscalem = hscale - 1;
+		int step2 = 0;
+
+		uint32_t inputEntriesCeilBlocks = ceil((float)inputEntries / BLOCK_SIZE);
+		uint32_t inputFeaturesCeilBlocks = ceil((float)inputFeatures / BLOCK_SIZE);
+		uint32_t outputFeaturesCeilBlocks = ceil((float)outputFeatures / BLOCK_SIZE);
+		uint32_t inputEntriesCeil = inputEntriesCeilBlocks * BLOCK_SIZE;
+		uint32_t inputFeaturesCeil = inputFeaturesCeilBlocks * BLOCK_SIZE;
+		uint32_t outputFeaturesCeil = outputFeaturesCeilBlocks * BLOCK_SIZE;
+		Clear(BLACK);
+
+		vf2d inputMatrixStartPos = vf2d(0, 0);
+		vf2d weightMatrixStartPos = vf2d(scale * inputFeaturesCeil, scale * inputEntriesCeil);
+		vf2d outputMatrixStartPos = vf2d(scale * inputFeaturesCeil, 0);
+
+		vf2d inputMatrixSize = vf2d(scale * inputFeaturesCeil, scale * inputEntriesCeil);
+		vf2d weightMatrixSize = vf2d(scale * outputFeaturesCeil, scale * inputFeaturesCeil);
+		vf2d outputMatrixSize = vf2d(scale * outputFeaturesCeil, scale * inputEntriesCeil);
+
+		FillRect(inputMatrixStartPos, inputMatrixSize, GREEN);
+		FillRect(weightMatrixStartPos, weightMatrixSize, BLUE);
+		FillRect(outputMatrixStartPos, outputMatrixSize, RED);
+
+		for (int i = 0; i < inputEntries; i++)
+		{
+			for (int j = 0; j < inputFeatures; j++)
+			{
+				FillCircle(inputMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
+			}
+			for (int j = inputFeatures; j < inputFeaturesCeil; j++)
+			{
+				FillCircle(inputMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem, BLACK);
+			}
+		}
+		for (int i = inputEntries; i < inputEntriesCeil; i++)
+		{
+			for (int j = 0; j < inputFeaturesCeil; j++)
+			{
+				FillCircle(inputMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem, BLACK);
+			}
+		}
+
+		for (int i = 0; i < inputFeatures; i++)
+		{
+			for (int j = 0; j < outputFeatures; j++)
+			{
+				FillCircle(weightMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
+			}
+		}
+
+		for (int i = 0; i < inputEntries; i++)
+		{
+			for (int j = 0; j < outputFeatures; j++)
+			{
+				FillCircle(outputMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
+			}
+		}
+		/*uint32_t prevx1 = -100;
+		uint32_t prevy1 = -100;
+		uint32_t prevx2 = -100;
+		uint32_t prevy2 = -100;
+		uint32_t prevx3 = -100;
+		uint32_t prevy3 = -100;
+
+		for (uint32_t blockx = 0; blockx < ceil((float)inputEntries / BLOCK_SIZE); blockx++)
+		{
+			for (uint32_t blocky = 0; blocky < ceil((float)outputFeatures / BLOCK_SIZE / BLOCK_SIZE); blocky++)
+			{
+				int dblockx = scale * (outputFeatures + inputFeatures);
+				FillRect(dblockx, 0, BLOCK_SIZE * scale, BLOCK_SIZE * scale, GREY);
+				for (uint32_t threadx = 0; threadx < BLOCK_SIZE; threadx++)
+				{
+					for (uint32_t thready = 0; thready < BLOCK_SIZE; thready++)
+					{
+						int x = blockx * BLOCK_SIZE + threadx;
+						int y = blocky * BLOCK_SIZE + thready;
+						int scaledx = dblockx + hscale + x * scale;
+						int scaledy = hscale + y * scale;
+						FillCircle(scaledx, scaledy, hscalem);
+					}
+				}
 
 
+				for (uint32_t threadx = 0; threadx < BLOCK_SIZE; threadx++)
+				{
+					for (uint32_t thready = 0; thready < BLOCK_SIZE; thready++)
+					{
+						if (++step2 > step) return true;
+						int x = blockx * BLOCK_SIZE + threadx;
+						int y = blocky * BLOCK_SIZE + thready;
+						int scaledx = dblockx + hscale + x * scale;
+						int scaledy = hscale + y * scale;
+						FillCircle(scaledx, scaledy, hscalem, BLACK);
+						FillCircle(prevx1, prevy1, hscalem);
+						prevx1 = scaledx;
+						prevy1 = scaledy;
 
-	cudaEvent_t start, stop;
-	float elapsedTime;
+						float sum = 0.0f;
+						FillCircle(hscale + dblockx, hscale + BLOCK_SIZE * scale, hscalem);
+						for (uint32_t k = 0; k < inputFeatures; k++)
+						{
+							if (++step2 > step) return true;
+							sum += inputMatrix[y * inputFeatures + k] * weightMatrix[k * outputFeatures + x];
+							int xx1 = hscale + k * scale;
+							int yy1 = hscale + y * scale;
+							FillCircle(xx1, yy1, hscalem, BLACK);
+							FillCircle(prevx2, prevy2, hscalem);
+							prevx2 = xx1;
+							prevy2 = yy1;
 
-	cudaEventCreate(&start);
-	cudaEventRecord(start, 0);
+							int xx2 = scale * inputFeatures + hscale + x * scale;
+							int yy2 = scale * inputEntries + hscale + k * scale;
+							FillCircle(xx2, yy2, hscalem, BLACK);
+							FillCircle(prevx3, prevy3, hscalem);
+							prevx3 = xx2;
+							prevy3 = yy2;
 
-	FillZero(outputMatrix, outputMatrixBytes);
-	MatrixMulCPU(inputMatrix, weightMatrix, outputMatrix, inputEntries, inputFeatures, outputFeatures);
-	
-	cudaEventCreate(&stop);
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&elapsedTime, start, stop);
-	cout << "CPU time: " << elapsedTime << " ms" << endl;
-	PrintMatrix(outputMatrix, inputEntries, outputFeatures);
+							FillCircle(hscale + dblockx, hscale + BLOCK_SIZE * scale, hscalem, BLACK);
+						}
+					}
+				}
+			}
+		}*/
 
-	
+		return true;
+	}
+};
 
-	cudaEventCreate(&start);
-	cudaEventRecord(start, 0);
-	
-	FillZero(outputMatrix, outputMatrixBytes);
-	cudaMemcpy(gpuInputMatrix, inputMatrix, inputMatrixBytes, cudaMemcpyHostToDevice);
-	cudaMemcpy(gpuWeightMatrix, weightMatrix, weightMatrixBytes, cudaMemcpyHostToDevice);
-	cudaMemcpy(gpuOutputMatrix, outputMatrix, outputMatrixBytes, cudaMemcpyHostToDevice);
-	//
+//void visualizeWithCPU()
+//{
+//	for (uint32_t blockx = 0; blockx < ceil((float)inputEntries / BLOCK_SIZE; blockx++)
+//	{
+//		for (uint32_t blocky = 0; blocky < ceil((float)outputFeatures / BLOCK_SIZE) / BLOCK_SIZE; blocky++)
+//		{
+//			float inputBlock[BLOCK_SIZE][BLOCK_SIZE];
+//				float weightBlock[BLOCK_SIZE][BLOCK_SIZE];
+//				uint32_t inputBegin = blocky * (BLOCK_SIZE * inputFeatures);
+//				uint32_t inputEnd = inputBegin + inputFeatures;
+//				uint32_t weightBegin = blockx * BLOCK_SIZE;
+//				uint32_t weightStep = BLOCK_SIZE * outputFeatures;
+//
+//				float sum = 0.0f;
+//			for (uint32_t x = inputBegin, y = weightBegin; x < inputEnd; x += BLOCK_SIZE, y += weightStep)
+//			{
+//				for (uint32_t threadx = 0; threadx < BLOCK_SIZE; threadx++)
+//				{
+//					for (uint32_t thready = 0; thready < BLOCK_SIZE; thready++)
+//					{
+//						inputBlock[threadx][thready] = inputMatrix[threadx * inputFeatures + x + thready] * (blocky * BLOCK_SIZE + thready < inputEntries&& x - inputBegin + threadx < inputFeatures);
+//						weightBlock[threadx][thready] = weightMatrix[threadx * outputFeatures + y + thready] * (x - inputBegin + thready < inputFeatures&& blockx* BLOCK_SIZE + threadx < outputFeatures);
+//					}
+//				}
+//
+//
+//				for (uint32_t threadx = 0; threadx < BLOCK_SIZE; threadx++)
+//				{
+//					for (uint32_t thready = 0; thready < BLOCK_SIZE; thready++)
+//					{
+//						for (uint32_t k = 0; k < BLOCK_SIZE; k++)
+//						{
+//							sum += inputBlock[threadCol][k] * weightBlock[k][threadRow];
+//						}
+//					}
+//				}
+//			}
+//			uint32_t outputIndex = outputFeatures * BLOCK_SIZE * blocky + BLOCK_SIZE * blockx;
+//			outputMatrix[outputIndex + outputFeatures * threadx + thready] = sum;
+//		}
+//	}
+//}
+
+int main()
+{
+	Example demo;
+	if (demo.Construct(1000, 1000, 1, 1))
+		demo.Start();
 
 	return 0;
 }
