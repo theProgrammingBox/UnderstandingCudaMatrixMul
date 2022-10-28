@@ -35,9 +35,12 @@ private:
 	uint32_t inputFeaturesCeil = inputFeaturesCeilBlocks * BLOCK_SIZE;
 	uint32_t outputFeaturesCeil = outputFeaturesCeilBlocks * BLOCK_SIZE;
 
-	vf2d inputMatrixStartPos = vf2d(0, 0);
+	/*vf2d inputMatrixStartPos = vf2d(0, 0);
 	vf2d weightMatrixStartPos = vf2d(scale * inputFeaturesCeil, scale * inputEntriesCeil);
-	vf2d outputMatrixStartPos = vf2d(scale * inputFeaturesCeil, 0);
+	vf2d outputMatrixStartPos = vf2d(scale * inputFeaturesCeil, 0);*/
+	vf2d inputMatrixStartPos = vf2d(scale * outputFeaturesCeil, scale * BLOCK_SIZE);
+	vf2d weightMatrixStartPos = vf2d(0, scale * inputEntriesCeil + scale * BLOCK_SIZE);
+	vf2d outputMatrixStartPos = vf2d(0, scale * BLOCK_SIZE);
 	vf2d blockSize = vf2d(BLOCK_SIZE * scale, BLOCK_SIZE * scale);
 	vf2d prevBlockPos = vf2d(-1000, -1000);
 	vf2d prevThreadPos = vf2d(-1000, -1000);
@@ -59,21 +62,9 @@ public:
 		FillZero(outputMatrix, outputMatrixBytes);
 		MatrixMulCPU(inputMatrix, weightMatrix, outputMatrix, inputEntries, inputFeatures, outputFeatures);
 		PrintMatrix(outputMatrix, inputEntries, outputFeatures);
-
-		for (uint32_t blockx = 0; blockx < inputFeaturesCeilBlocks; blockx++)
-		{
-			for (uint32_t blocky = 0; blocky < inputEntriesCeilBlocks; blocky++)
-			{
-				DrawRect(inputMatrixStartPos + vf2d(blockx, blocky) * blockSize, blockSize, GREEN);
-			}
-		}
-		for (uint32_t blockx = 0; blockx < outputFeaturesCeilBlocks; blockx++)
-		{
-			for (uint32_t blocky = 0; blocky < inputFeaturesCeilBlocks; blocky++)
-			{
-				DrawRect(weightMatrixStartPos + vf2d(blockx, blocky) * blockSize, blockSize, BLUE);
-			}
-		}
+		
+		DrawRect(inputMatrixStartPos, vf2d(inputFeatures, inputEntries) * scale, GREEN);
+		DrawRect(weightMatrixStartPos, vf2d(outputFeatures, inputFeatures) * scale, BLUE);
 		for (uint32_t blockx = 0; blockx < outputFeaturesCeilBlocks; blockx++)
 		{
 			for (uint32_t blocky = 0; blocky < inputEntriesCeilBlocks; blocky++)
