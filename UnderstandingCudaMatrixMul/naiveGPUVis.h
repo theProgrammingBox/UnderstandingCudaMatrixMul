@@ -67,8 +67,8 @@ public:
 		FillRandom(biasMatrix, outputMatrixSize);
 
 		FillZero(outputMatrix, outputMatrixBytes);
-		/*MatrixMulCPU(inputMatrix, weightMatrix, outputMatrix, inputEntries, inputFeatures, outputFeatures);
-		PrintMatrix(outputMatrix, inputEntries, outputFeatures);*/
+		MatrixMulCPU(inputMatrix, weightMatrix, outputMatrix, inputEntries, inputFeatures, outputFeatures);
+		PrintMatrix(outputMatrix, inputEntries, outputFeatures);
 		
 		DrawRect(inputMatrixStartPos, vf2d(inputFeatures, inputEntries) * scale, GREEN);
 		DrawRect(weightMatrixStartPos, vf2d(outputFeatures, inputFeatures) * scale, BLUE);
@@ -87,108 +87,121 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		if (GetKey(olc::Key::SPACE).bHeld)
+		if (GetKey(olc::Key::W).bHeld)
 		{
-			const float timef = 0.001f;
-			if (GetKey(olc::Key::UP).bHeld)
+			for (int i = 0; i < outputFeatures; i++)
 			{
-				keyD += fElapsedTime;
-				if (keyD > timef)
+				for (int j = 0; j < inputEntries; j++)
 				{
-					step++;
-					keyD = 0;
-				}
-			}
-			if (GetKey(olc::Key::DOWN).bHeld)
-			{
-				keyD -= fElapsedTime;
-				if (keyD < -timef)
-				{
-					step--;
-					keyD = 0;
+					DrawCircle(outputMatrixStartPos + vf2d(hscale + i * scale, hscale + j * scale), hscalem, scalarToRG(outputMatrix[j * outputFeatures + i]));
 				}
 			}
 		}
 		else
 		{
-			if (GetKey(olc::Key::UP).bPressed) step++;
-			if (GetKey(olc::Key::DOWN).bPressed) step--;
-		}
-		if (step < 0) step = 0;
-
-
-		for (int i = 0; i < inputEntries; i++)
-		{
-			for (int j = 0; j < inputFeatures; j++)
+			if (GetKey(olc::Key::SPACE).bHeld)
 			{
-				DrawCircle(inputMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem, scalarToRG(inputMatrix[i * inputFeatures + j]));
-			}
-		}
-
-		for (int i = 0; i < inputFeatures; i++)
-		{
-			for (int j = 0; j < outputFeatures; j++)
-			{
-				DrawCircle(weightMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem, scalarToRG(weightMatrix[i * outputFeatures + j]));
-			}
-		}
-
-		for (int i = 0; i < outputFeatures; i++)
-		{
-			for (int j = 0; j < inputEntries; j++)
-			{
-				DrawCircle(outputMatrixStartPos + vf2d(hscale + i * scale, hscale + j * scale), hscalem);
-			}
-		}
-
-		for (int i = 0; i < inputEntriesCeil; i++)
-		{
-			for (int j = 0; j < outputFeaturesCeil; j++)
-			{
-				DrawCircle(outputBlockMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
-			}
-		}
-
-		vf2d blockDMPos;
-		vf2d blockDPos;
-		vf2d threadDPos;
-		vf2d outputDPos;
-		vf2d inputDPos;
-		vf2d weightDPos;
-		
-		Pixel inputDColor;
-		Pixel weightDColor;
-		
-		int step2 = 0;
-		for (uint32_t blockx = 0; blockx < outputFeaturesCeilBlocks; blockx++)
-		{
-			for (uint32_t blocky = 0; blocky < inputEntriesCeilBlocks; blocky++)
-			{
-				blockDMPos = vf2d(blockx, blocky) * blockSize;
-				blockDPos = outputBlockMatrixStartPos + blockDMPos;
-
-				for (uint32_t threadx = 0; threadx < BLOCK_SIZE; threadx++)
+				const float timef = 0.001f;
+				if (GetKey(olc::Key::UP).bHeld)
 				{
-					for (uint32_t thready = 0; thready < BLOCK_SIZE; thready++)
+					keyD += fElapsedTime;
+					if (keyD > timef)
 					{
-						if (blockx * BLOCK_SIZE + threadx < outputFeatures && blocky * BLOCK_SIZE + thready < inputEntries)
+						step++;
+						keyD = 0;
+					}
+				}
+				if (GetKey(olc::Key::DOWN).bHeld)
+				{
+					keyD -= fElapsedTime;
+					if (keyD < -timef)
+					{
+						step--;
+						keyD = 0;
+					}
+				}
+			}
+			else
+			{
+				if (GetKey(olc::Key::UP).bPressed) step++;
+				if (GetKey(olc::Key::DOWN).bPressed) step--;
+			}
+			if (step < 0) step = 0;
+			
+			for (int i = 0; i < inputEntries; i++)
+			{
+				for (int j = 0; j < inputFeatures; j++)
+				{
+					DrawCircle(inputMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem, scalarToRG(inputMatrix[i * inputFeatures + j]));
+				}
+			}
+
+			for (int i = 0; i < inputFeatures; i++)
+			{
+				for (int j = 0; j < outputFeatures; j++)
+				{
+					DrawCircle(weightMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem, scalarToRG(weightMatrix[i * outputFeatures + j]));
+				}
+			}
+
+			for (int i = 0; i < outputFeatures; i++)
+			{
+				for (int j = 0; j < inputEntries; j++)
+				{
+					DrawCircle(outputMatrixStartPos + vf2d(hscale + i * scale, hscale + j * scale), hscalem);
+				}
+			}
+
+			for (int i = 0; i < inputEntriesCeil; i++)
+			{
+				for (int j = 0; j < outputFeaturesCeil; j++)
+				{
+					DrawCircle(outputBlockMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
+				}
+			}
+			
+			vf2d blockDMPos;
+			vf2d blockDPos;
+			vf2d threadDPos;
+			vf2d outputDPos;
+			vf2d inputDPos;
+			vf2d weightDPos;
+
+			Pixel inputDColor;
+			Pixel weightDColor;
+
+			int step2 = 0;
+			for (uint32_t blockx = 0; blockx < outputFeaturesCeilBlocks; blockx++)
+			{
+				for (uint32_t blocky = 0; blocky < inputEntriesCeilBlocks; blocky++)
+				{
+					blockDMPos = vf2d(blockx, blocky) * blockSize;
+					blockDPos = outputBlockMatrixStartPos + blockDMPos;
+
+					for (uint32_t threadx = 0; threadx < BLOCK_SIZE; threadx++)
+					{
+						for (uint32_t thready = 0; thready < BLOCK_SIZE; thready++)
 						{
-							threadDPos = blockDPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
-
-							float sum = 0.0f;
-							for (uint32_t k = 0; k < inputFeatures; k++)
+							if (blockx * BLOCK_SIZE + threadx < outputFeatures && blocky * BLOCK_SIZE + thready < inputEntries)
 							{
-								inputDPos = inputMatrixStartPos + vf2d(k * scale + hscale, thready * scale + hscale + blockDMPos.y);
-								weightDPos = weightMatrixStartPos + vf2d(threadx * scale + hscale + blockDMPos.x, k * scale + hscale);
-								sum += inputMatrix[thready * inputFeatures + k] * weightMatrix[k * outputFeatures + threadx];
-								inputDColor = scalarToRG(inputMatrix[thready * inputFeatures + k]);
-								weightDColor = scalarToRG(weightMatrix[k * outputFeatures + threadx]);
+								threadDPos = blockDPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
 
-								step2++;
-								if (step2 > step) break;
+								float sum = 0.0f;
+								for (uint32_t k = 0; k < inputFeatures; k++)
+								{
+									inputDPos = inputMatrixStartPos + vf2d(k * scale + hscale, thready * scale + hscale + blockDMPos.y);
+									weightDPos = weightMatrixStartPos + vf2d(threadx * scale + hscale + blockDMPos.x, k * scale + hscale);
+									sum += inputMatrix[(blocky * BLOCK_SIZE + thready) * inputFeatures + k] * weightMatrix[k * outputFeatures + blockx * BLOCK_SIZE + threadx];
+									inputDColor = scalarToRG(inputMatrix[thready * inputFeatures + k]);
+									weightDColor = scalarToRG(weightMatrix[k * outputFeatures + threadx]);
+
+									step2++;
+									if (step2 > step) break;
+								}
+								outputDPos = outputMatrixStartPos + blockDMPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
+								DrawCircle(outputDPos, hscalem, scalarToRG(sum));
 							}
-							outputDPos = outputMatrixStartPos + blockDMPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
-							DrawCircle(outputDPos, hscalem, scalarToRG(sum));
+							if (step2 > step) break;
 						}
 						if (step2 > step) break;
 					}
@@ -196,25 +209,24 @@ public:
 				}
 				if (step2 > step) break;
 			}
-			if (step2 > step) break;
+			if (step == step2) step--;
+			DrawRect(prevBlockPos, blockSize, DARK_RED);
+			DrawRect(blockDPos, blockSize, YELLOW);
+			DrawCircle(prevThreadPos, hscalem);
+			DrawCircle(threadDPos, hscalem, DARK_GREY);
+
+			DrawCircle(previnputPos, hscalem, previnputColor);
+			DrawCircle(inputDPos, hscalem);
+			DrawCircle(prevWeightPos, hscalem, prevWeightColor);
+			DrawCircle(weightDPos, hscalem);
+
+			prevBlockPos = blockDPos;
+			prevThreadPos = threadDPos;
+			previnputPos = inputDPos;
+			prevWeightPos = weightDPos;
+			previnputColor = inputDColor;
+			prevWeightColor = weightDColor;
 		}
-		if (step == step2) step--;
-		DrawRect(prevBlockPos, blockSize, DARK_RED);
-		DrawRect(blockDPos, blockSize, YELLOW);
-		DrawCircle(prevThreadPos, hscalem);
-		DrawCircle(threadDPos, hscalem, DARK_GREY);
-		
-		DrawCircle(previnputPos, hscalem, previnputColor);
-		DrawCircle(inputDPos, hscalem);
-		DrawCircle(prevWeightPos, hscalem, prevWeightColor);
-		DrawCircle(weightDPos, hscalem);
-		
-		prevBlockPos = blockDPos;
-		prevThreadPos = threadDPos;
-		previnputPos = inputDPos;
-		prevWeightPos = weightDPos;
-		previnputColor = inputDColor;
-		prevWeightColor = weightDColor;
 
 		return true;
 	}

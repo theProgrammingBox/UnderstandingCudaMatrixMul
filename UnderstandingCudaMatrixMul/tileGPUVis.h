@@ -48,6 +48,13 @@ private:
 	vf2d prevWeightPos = vf2d(-1000, -1000);
 	vf2d prevOutputPos = vf2d(-1000, -1000);
 
+	Pixel scalarToRG(float scalar)
+	{
+		float r = 255.0f / (1.0f + exp(scalar));
+		float g = 255.0f / (1.0f + exp(-scalar));
+		return Pixel(r, g, 0);
+	}
+
 public:
 	TileGPU()
 	{
