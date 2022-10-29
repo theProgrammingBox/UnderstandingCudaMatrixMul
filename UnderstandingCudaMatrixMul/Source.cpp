@@ -7,13 +7,13 @@ int main()
 	if (option == 0)
 	{
 		NaiveGPU naive;
-		if (naive.Construct(800, 600, 1, 1))
+		if (naive.Construct(1000, 1000, 1, 1))
 			naive.Start();
 	}
-	else
+	else if (option == 1)
 	{
 		TileGPU tile;
-		if (tile.Construct(800, 600, 1, 1))
+		if (tile.Construct(1000, 1000, 1, 1))
 			tile.Start();
 	}
 

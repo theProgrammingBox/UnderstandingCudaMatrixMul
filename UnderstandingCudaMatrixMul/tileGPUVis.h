@@ -36,23 +36,22 @@ private:
 	uint32_t outputFeaturesCeil = outputFeaturesCeilBlocks * BLOCK_SIZE;
 
 	vf2d inputMatrixStartPos = vf2d(0, 0);
-	vf2d weightMatrixStartPos = inputMatrixStartPos + vf2d(scale * inputFeatures, scale * inputEntriesCeil);
+	vf2d weightMatrixStartPos = inputMatrixStartPos + vf2d(scale * inputFeatures, scale * inputEntries);
 	vf2d outputMatrixStartPos = inputMatrixStartPos + vf2d(scale * inputFeatures, 0);
-	vf2d inputBlockMatrixStartPos = outputMatrixStartPos + vf2d(scale * outputFeaturesCeil, 0);
-	vf2d weightBlockMatrixStartPos = inputBlockMatrixStartPos + vf2d(scale * BLOCK_SIZE, 0);
+	vf2d inputBlockMatrixStartPos = vf2d(0, weightMatrixStartPos.y + inputFeatures * scale + 10);
+	vf2d weightBlockMatrixStartPos = inputBlockMatrixStartPos + vf2d(scale * BLOCK_SIZE, inputEntriesCeilBlocks * scale * BLOCK_SIZE);
+	vf2d outputBlockMatrixStartPos = inputBlockMatrixStartPos + vf2d(scale * BLOCK_SIZE, 0);
 	vf2d blockSize = vf2d(BLOCK_SIZE * scale, BLOCK_SIZE * scale);
 	vf2d prevBlockPos = vf2d(-1000, -1000);
 	vf2d prevThreadPos = vf2d(-1000, -1000);
-	vf2d prevInputPos = vf2d(-1000, -1000);
+	vf2d previnputPos = vf2d(-1000, -1000);
 	vf2d prevWeightPos = vf2d(-1000, -1000);
 	vf2d prevOutputPos = vf2d(-1000, -1000);
-	vf2d prevInputBlockPos = vf2d(-1000, -1000);
-	vf2d prevWeightBlockPos = vf2d(-1000, -1000);
 
 public:
 	TileGPU()
 	{
-		sAppName = "Visualize naive GPU";
+		sAppName = "Visualize tile GPU";
 	}
 
 	bool OnUserCreate() override
@@ -68,14 +67,15 @@ public:
 		DrawRect(inputMatrixStartPos, vf2d(inputFeatures, inputEntries) * scale, GREEN);
 		DrawRect(weightMatrixStartPos, vf2d(outputFeatures, inputFeatures) * scale, BLUE);
 		DrawRect(outputMatrixStartPos, vf2d(outputFeatures, inputEntries) * scale, RED);
-		DrawRect(inputBlockMatrixStartPos, blockSize, GREEN);
-		DrawRect(weightBlockMatrixStartPos, blockSize, BLUE);
+		
+		DrawRect(inputBlockMatrixStartPos, blockSize, DARK_GREEN);
+		DrawRect(weightBlockMatrixStartPos, blockSize, DARK_BLUE);
 
 		for (uint32_t blocky = 0; blocky < inputEntriesCeilBlocks; blocky++)
 		{
 			for (uint32_t blockx = 0; blockx < outputFeaturesCeilBlocks; blockx++)
 			{
-				DrawRect(outputMatrixStartPos + vf2d(blockx, blocky) * blockSize, blockSize, DARK_GREY);
+				DrawRect(outputBlockMatrixStartPos + vf2d(blockx, blocky) * blockSize, blockSize, DARK_RED);
 			}
 		}
 
@@ -95,11 +95,11 @@ public:
 			}
 		}
 
-		for (int i = 0; i < inputEntriesCeil; i++)
+		for (int i = 0; i < outputFeatures; i++)
 		{
-			for (int j = 0; j < outputFeaturesCeil; j++)
+			for (int j = 0; j < inputEntries; j++)
 			{
-				DrawCircle(outputMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
+				DrawCircle(outputMatrixStartPos + vf2d(hscale + i * scale, hscale + j * scale), hscalem);
 			}
 		}
 
@@ -118,6 +118,14 @@ public:
 				DrawCircle(weightBlockMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
 			}
 		}
+		
+		for (int i = 0; i < inputEntriesCeil; i++)
+		{
+			for (int j = 0; j < outputFeaturesCeil; j++)
+			{
+				DrawCircle(outputBlockMatrixStartPos + vf2d(hscale + j * scale, hscale + i * scale), hscalem);
+			}
+		}
 
 		return true;
 	}
@@ -126,7 +134,7 @@ public:
 	{
 		if (GetKey(olc::Key::SPACE).bHeld)
 		{
-			const float timef = 0.01f;
+			const float timef = 0.001f;
 			if (GetKey(olc::Key::UP).bHeld)
 			{
 				keyD += fElapsedTime;
@@ -160,15 +168,13 @@ public:
 		vf2d outputDPos;
 		vf2d inputDPos;
 		vf2d weightDPos;
-		vf2d inputBlockDPos;
-		vf2d weightBlockDPos;
 		int step2 = 0;
 		for (uint32_t blockx = 0; blockx < outputFeaturesCeilBlocks; blockx++)
 		{
 			for (uint32_t blocky = 0; blocky < inputEntriesCeilBlocks; blocky++)
 			{
 				blockDMPos = vf2d(blockx, blocky) * blockSize;
-				blockDPos = outputMatrixStartPos + blockDMPos;
+				blockDPos = outputBlockMatrixStartPos + blockDMPos;
 
 				for (uint32_t threadx = 0; threadx < BLOCK_SIZE; threadx++)
 				{
@@ -176,21 +182,17 @@ public:
 					{
 						if (blockx * BLOCK_SIZE + threadx < outputFeatures && blocky * BLOCK_SIZE + thready < inputEntries)
 						{
-							/*threadDPos = blockDPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
+							threadDPos = blockDPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
 							outputDPos = outputMatrixStartPos + blockDMPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
 
 							for (uint32_t k = 0; k < inputFeatures; k++)
 							{
 								inputDPos = inputMatrixStartPos + vf2d(k * scale + hscale, thready * scale + hscale + blockDMPos.y);
-
 								weightDPos = weightMatrixStartPos + vf2d(threadx * scale + hscale + blockDMPos.x, k * scale + hscale);
 
 								step2++;
 								if (step2 > step) break;
-							}*/
-							inputDPos = inputMatrixStartPos + vf2d(threadx * scale + hscale, thready * scale + hscale + blockDMPos.y);
-							inputBlockDPos = inputBlockMatrixStartPos + vf2d(threadx * scale + hscale, thready * scale + hscale);
-							step2++;
+							}
 						}
 						if (step2 > step) break;
 					}
@@ -201,27 +203,21 @@ public:
 			if (step2 > step) break;
 		}
 		if (step == step2) step--;
-		DrawRect(prevBlockPos, blockSize, DARK_GREY);
+		DrawRect(prevBlockPos, blockSize, GREY);
 		DrawRect(blockDPos, blockSize, YELLOW);
 		DrawCircle(prevThreadPos, hscalem);
 		DrawCircle(threadDPos, hscalem, DARK_GREY);
 		DrawCircle(prevOutputPos, hscalem);
 		DrawCircle(outputDPos, hscalem, DARK_GREY);
-		DrawCircle(prevInputPos, hscalem);
+		DrawCircle(previnputPos, hscalem);
 		DrawCircle(inputDPos, hscalem, DARK_GREY);
 		DrawCircle(prevWeightPos, hscalem);
 		DrawCircle(weightDPos, hscalem, DARK_GREY);
-		DrawCircle(prevInputBlockPos, hscalem);
-		DrawCircle(inputBlockDPos, hscalem, DARK_GREY);
-		DrawCircle(prevWeightBlockPos, hscalem);
-		DrawCircle(weightBlockDPos, hscalem, DARK_GREY);
 		prevBlockPos = blockDPos;
 		prevThreadPos = threadDPos;
 		prevOutputPos = outputDPos;
-		prevInputPos = inputDPos;
+		previnputPos = inputDPos;
 		prevWeightPos = weightDPos;
-		prevInputBlockPos = inputBlockDPos;
-		prevWeightBlockPos = weightBlockDPos;
 
 		return true;
 	}
