@@ -214,9 +214,23 @@ public:
 //int main()
 //{
 //	NaiveGPU demo;
+//	float* gpuInput;
+//	float* gpuWeight;
+//	float* gpuOutput;
+//	cudaMalloc(&gpuInput, sizeof(float) * demo.inputEntries * demo.inputFeatures);
+//	cudaMalloc(&gpuWeight, sizeof(float) * demo.inputFeatures * demo.outputFeatures);
+//	cudaMalloc(&gpuOutput, sizeof(float) * demo.inputEntries * demo.outputFeatures);
 //	dim3 block(BLOCK_SIZE, BLOCK_SIZE);
 //	dim3 thread(demo.outputFeaturesCeilBlocks, demo.inputEntriesCeilBlocks);
+//	cudaMemcpy(gpuInput, demo.input, sizeof(float) * demo.inputEntries * demo.inputFeatures, cudaMemcpyHostToDevice);
+//	cudaMemcpy(gpuWeight, demo.weight, sizeof(float) * demo.inputFeatures * demo.outputFeatures, cudaMemcpyHostToDevice);
 //	matrixMultiplyKernel <<<thread, block>>> (demo.input, demo.weight, demo.output, demo.inputEntries, demo.inputFeatures, demo.outputFeatures);
+//	cudaMemcpy(demo.output, gpuOutput, sizeof(float) * demo.inputEntries * demo.outputFeatures, cudaMemcpyDeviceToHost);
+//	cudaFree(gpuInput);
+//	cudaFree(gpuWeight);
+//	cudaFree(gpuOutput);
+//	if (demo.Construct(800, 800, 1, 1))
+//		demo.Start();
 //
 //	return 0;
 //}
