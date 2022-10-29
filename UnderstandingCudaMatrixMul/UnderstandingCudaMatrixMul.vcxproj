@@ -131,6 +131,7 @@
     <ClInclude Include="naiveGPUVis.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
     <ClInclude Include="Randoms.h" />
+    <ClInclude Include="tileGPUVis.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
