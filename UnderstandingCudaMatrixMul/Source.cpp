@@ -3,7 +3,7 @@
 
 int main()
 {
-	int option = 0;
+	int option = 1;
 	if (option == 0)
 	{
 		NaiveGPU naive;

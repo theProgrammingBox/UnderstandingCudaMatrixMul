@@ -22,7 +22,6 @@ private:
 	float* inputMatrix = (float*)malloc(inputMatrixBytes);
 	float* weightMatrix = (float*)malloc(weightMatrixBytes);
 	float* outputMatrix = (float*)malloc(outputMatrixBytes);
-	float* biasMatrix = (float*)malloc(outputMatrixBytes);
 
 	const int scale = 10;
 	const int hscale = scale / 2;
@@ -64,7 +63,6 @@ public:
 	{
 		FillRandom(inputMatrix, inputMatrixSize);
 		FillRandom(weightMatrix, weightMatrixSize);
-		FillRandom(biasMatrix, outputMatrixSize);
 
 		FillZero(outputMatrix, outputMatrixBytes);
 		MatrixMulCPU(inputMatrix, weightMatrix, outputMatrix, inputEntries, inputFeatures, outputFeatures);
